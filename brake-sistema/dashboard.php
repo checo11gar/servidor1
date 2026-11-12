@@ -483,6 +483,12 @@ $ico = fn(string $k, string $cls = 'ico') => '<svg class="' . $cls . '" viewBox=
         <label class="campo"><span>Puesto</span><input name="puesto" maxlength="80"></label>
       </div>
       <label style="display:flex;gap:.5rem;align-items:center;margin-top:.8rem"><input type="checkbox" name="activo" style="width:auto" checked> Activo (puede reportar con su tarjeta)</label>
+      
+      <h3 style="margin:1.4rem 0 .6rem;font-size:1.05rem">Seguridad de firma</h3>
+      <div class="rejilla">
+         <label class="campo"><span>NIP del trabajador</span><button type="button" class="btn" id="btn-mod-nip" style="width: max-content;">Modificar NIP del trabajador</button></label>
+      </div>
+
       <h3 style="margin:1.4rem 0 .6rem;font-size:1.05rem">Acceso al panel</h3>
       <div class="rejilla">
         <label class="campo"><span>Rol</span><select name="rol">
@@ -523,6 +529,34 @@ $ico = fn(string $k, string $cls = 'ico') => '<svg class="' . $cls . '" viewBox=
       </div>
     </div>
     <div class="ventana-pie"><span></span><div class="der"><button class="btn" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="submit" value="ok">Guardar</button></div></div>
+  </form>
+</dialog>
+
+<!-- NUEVAS VENTANAS DE MODIFICACIÓN DE NIP -->
+<dialog class="ventana angosta" id="dlg-admin-nip">
+  <form method="dialog" id="f-admin-nip">
+    <div class="ventana-cab"><h2>Autorización de Administrador</h2><button class="cerrar-x" type="button" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="ventana-cuerpo" id="admin-nip-cuerpo" style="min-height: 180px; display: flex; flex-direction: column; justify-content: center;">
+      <p class="muted" style="margin-bottom:1rem; text-align:center;">Ingrese su NIP de administrador para modificar la seguridad del trabajador.</p>
+      <div style="display:flex; justify-content:center; margin: 1.5rem 0;">
+        <input type="password" id="admin-nip-val" maxlength="4" required inputmode="numeric" placeholder="****" autocomplete="off" style="font-size: 2.2rem; letter-spacing: .4em; text-align: center; width: 160px; padding: .6rem; border-radius: 8px; border: 1px solid var(--linea);">
+      </div>
+    </div>
+    <div class="ventana-pie" id="admin-nip-pie"><span></span><div class="der"><button class="btn" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="submit">Validar NIP</button></div></div>
+  </form>
+</dialog>
+
+<dialog class="ventana angosta" id="dlg-nuevo-nip">
+  <form method="dialog" id="f-nuevo-nip">
+    <div class="ventana-cab"><h2>Asignar nuevo NIP</h2><button class="cerrar-x" type="button" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="ventana-cuerpo">
+      <div id="dnip-msg"></div>
+      <div class="rejilla">
+        <label class="campo"><span>NIP nuevo (4 dígitos) *</span><input type="password" id="nip-nuevo-1" maxlength="4" required inputmode="numeric" autocomplete="new-password" placeholder="****"></label>
+        <label class="campo"><span>Confirmar NIP *</span><input type="password" id="nip-nuevo-2" maxlength="4" required inputmode="numeric" autocomplete="new-password" placeholder="****"></label>
+      </div>
+    </div>
+    <div class="ventana-pie"><span></span><div class="der"><button class="btn" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="submit">Guardar NIP</button></div></div>
   </form>
 </dialog>
 
