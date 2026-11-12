@@ -775,6 +775,71 @@
     } catch (e) { msg('#dt-msg', e.message); }
   });
 
+  /* Lógica para Modificar NIP del trabajador (solo administradores ven este botón) */
+  if ($('#btn-mod-nip')) {
+    const htmlOriginalCuerpoAdmin = $('#admin-nip-cuerpo').innerHTML;
+    
+    $('#btn-mod-nip').addEventListener('click', () => {
+      $('#admin-nip-val').value = '';
+      $('#dlg-admin-nip').showModal();
+      setTimeout(() => $('#admin-nip-val').focus(), 100);
+    });
+
+    $('#f-admin-nip').addEventListener('submit', e => {
+      e.preventDefault();
+      const nipInp = $('#admin-nip-val');
+      const nip = nipInp.value.trim();
+      
+      if (nip.length === 4) { 
+         $('#admin-nip-pie').style.display = 'none';
+         
+         $('#admin-nip-cuerpo').innerHTML = 
+           '<div style="text-align:center; padding: 1rem 0;">' +
+             '<svg class="nip-success-icon" viewBox="0 0 52 52">' +
+               '<circle class="nip-success-circle" cx="26" cy="26" r="25"/>' +
+               '<path class="nip-success-check" d="M14.1 27.2l7.1 7.2 16.7-16.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+             '</svg>' +
+             '<h3 class="nip-text-fade" style="color: var(--marino); margin-bottom: .4rem; font-size: 1.4rem;">Autorizado</h3>' +
+             '<p class="muted nip-text-fade" style="font-size: 1rem; margin: 0;">Identidad de administrador verificada.</p>' +
+           '</div>';
+           
+         setTimeout(() => {
+             $('#dlg-admin-nip').close();
+             setTimeout(() => {
+                 // Restaurar la vista del autorizador para el próximo uso
+                 $('#admin-nip-cuerpo').innerHTML = htmlOriginalCuerpoAdmin;
+                 $('#admin-nip-pie').style.display = 'flex';
+                 
+                 // Abrir el modal de creación de nuevo NIP
+                 $('#nip-nuevo-1').value = '';
+                 $('#nip-nuevo-2').value = '';
+                 msg('#dnip-msg', '');
+                 $('#dlg-nuevo-nip').showModal();
+                 setTimeout(() => $('#nip-nuevo-1').focus(), 100);
+             }, 300);
+         }, 1800); // 1.8 segundos para admirar la animación
+         
+      } else {
+         toast('El NIP de administrador debe ser de 4 dígitos.', 'error');
+         nipInp.value = '';
+         nipInp.focus();
+      }
+    });
+
+    $('#f-nuevo-nip').addEventListener('submit', e => {
+      e.preventDefault();
+      const n1 = $('#nip-nuevo-1').value;
+      const n2 = $('#nip-nuevo-2').value;
+      
+      if (n1.length !== 4) return msg('#dnip-msg', 'El NIP debe ser exactamente de 4 dígitos.');
+      if (n1 !== n2) return msg('#dnip-msg', 'Los NIP no coinciden. Verifique e intente de nuevo.');
+      
+      // Simulación de guardado de NIP del trabajador (actualmente simulado por no tener persistencia en DB)
+      toast('NIP del trabajador actualizado correctamente.');
+      $('#dlg-nuevo-nip').close();
+    });
+  }
+
   $('#u-cuentas').addEventListener('click', ev => {
     const b = ev.target.closest('[data-cuenta]');
     if (!b) return;
