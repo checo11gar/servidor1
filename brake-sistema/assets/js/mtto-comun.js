@@ -130,11 +130,7 @@
     obtener() { return this.valor || ''; }
   }
 
-  /* ---------- Formato de Orden de Mantenimiento Correctivo ----------
-   * modo 'reporte': lo llena quien reporta (página pública).
-   * modo 'admin'  : lo completa Mantenimiento (panel).
-   * o = datos de la orden; opc = { equipos, misEquipos, tecnicos, logo }
-   */
+  /* ---------- Formato de Orden de Mantenimiento Correctivo ---------- */
   const ESTADOS = { pendiente: 'Pendiente', verificada: 'Verificada', en_proceso: 'En proceso', finalizada: 'Finalizada' };
   const PRIORIDADES = { baja: 'Baja', media: 'Media', alta: 'Alta', critica: 'Crítica' };
 
@@ -169,6 +165,10 @@
     const mttoCls = adm ? '' : ' solo-mtto';
     const tecOpts = (opc.tecnicos || []).map(t =>
       '<option value="' + t.id + '"' + (Number(o.ejecuto_id) === Number(t.id) ? ' selected' : '') + '>' + esc(t.nombre) + '</option>').join('');
+
+    const repEdit = !adm || !o.firma_reporto;
+    const ejeEdit = adm;
+    const recEdit = adm;
 
     host.innerHTML =
     '<div class="fmt">' +
@@ -212,15 +212,18 @@
         '<textarea id="f-desc" maxlength="5000"' + dis + ' placeholder="' + (adm ? 'Trabajo realizado, refacciones, observaciones…' : 'Lo llena Mantenimiento') + '">' + esc(o.descripcion || '') + '</textarea></div>' +
       '<div class="fmt-fila f-3i">' +
         '<div class="fmt-c"><span class="et">Reportó nombre y firma</span><div class="firma-nombre" id="f-firma-nombre">' + esc(o.reporta_nombre || '') + '</div>' +
-          '<div class="firma-caja" id="firma-reporto"></div>' +
+          '<div class="firma-caja" id="firma-reporto"' + (repEdit && !o.firma_reporto ? ' style="pointer-events:none; opacity:0.35;"' : '') + '></div>' +
+          (repEdit && !o.firma_reporto ? '<button type="button" class="btn btn-sm btn-nip" data-caja="firma-reporto" style="margin: .4rem 0 .2rem; width: 100%;">Ingresar NIP</button>' : '') +
           '<small>Fecha: ' + esc(o.fecha_firma_reporto || (adm ? '' : 'hoy')) + '</small></div>' +
         '<div class="fmt-c' + mttoCls + '"><span class="et">Ejecutó mantenimiento nombre y firma</span>' +
           (adm ? '<select id="f-ejecuto"><option value="">Seleccione técnico…</option>' + tecOpts + '</select>' : '<div class="firma-nombre">' + esc(o.ejecuto_nombre || '') + '</div>') +
-          '<div class="firma-caja" id="firma-ejecuto"></div>' +
+          '<div class="firma-caja" id="firma-ejecuto"' + (ejeEdit && !o.firma_ejecuto ? ' style="pointer-events:none; opacity:0.35;"' : '') + '></div>' +
+          (ejeEdit && !o.firma_ejecuto ? '<button type="button" class="btn btn-sm btn-nip" data-caja="firma-ejecuto" style="margin: .4rem 0 .2rem; width: 100%;">Ingresar NIP</button>' : '') +
           '<label class="muted">Fecha: <input type="date" id="f-fecha-ejecuto" value="' + esc(o.fecha_firma_ejecuto || '') + '"' + dis + ' style="width:auto"></label></div>' +
         '<div class="fmt-c' + mttoCls + '"><span class="et">Recibió nombre y firma (líder)</span>' +
           '<input id="f-recibio" maxlength="120" placeholder="Nombre de quien recibe" value="' + esc(o.recibio_nombre || '') + '"' + dis + '>' +
-          '<div class="firma-caja" id="firma-recibio"></div>' +
+          '<div class="firma-caja" id="firma-recibio"' + (recEdit && !o.firma_recibio ? ' style="pointer-events:none; opacity:0.35;"' : '') + '></div>' +
+          (recEdit && !o.firma_recibio ? '<button type="button" class="btn btn-sm btn-nip" data-caja="firma-recibio" style="margin: .4rem 0 .2rem; width: 100%;">Ingresar NIP</button>' : '') +
           '<label class="muted">Fecha: <input type="date" id="f-fecha-recibio" value="' + esc(o.fecha_firma_recibio || '') + '"' + dis + ' style="width:auto"></label></div>' +
       '</div>' +
     '</div>';
@@ -244,7 +247,6 @@
     ['#f-paro', '#f-ejec', '#f-entr'].forEach(s => $(s, host).addEventListener('input', calcular));
     calcular();
 
-    /** Devuelve los datos capturados en el formato. */
     function leer() {
       const tipo = $('input[name="f-tipo"]:checked', host);
       const pri = $('input[name="f-prioridad"]:checked', host);
@@ -273,14 +275,12 @@
       }
       return d;
     }
-    /** Recarga la lista de equipos (página pública, después de buscar la tarjeta). */
     leer.setEquipos = (equipos, misEquipos, seleccionado) => {
       opc.equipos = equipos || []; opc.misEquipos = misEquipos || [];
       sel.innerHTML = opcionesEquipo(opc, seleccionado || null, '');
       libre.hidden = sel.value !== 'otro';
       if (opc.onEquipo) opc.onEquipo(sel.value);
     };
-    /** Muestra a la persona encontrada por su tarjeta (o la limpia con null). */
     leer.setResponsable = t => {
       $('#f-resp-nombre', host).textContent = t ? t.nombre : '';
       $('#f-resp-sub', host).textContent = t ? [t.area, t.puesto].filter(Boolean).join(' · ') : '';
@@ -291,6 +291,102 @@
     leer.equipoSeleccionado = () => sel.value;
     return leer;
   }
+
+  /* ---------- Modal NIP (Animación vectorizada fluida) ---------- */
+  function prepararModalNip() {
+    if ($('#dlg-nip')) return;
+
+    // Estilos internos exclusivos para la animación SVG de éxito
+    const style = document.createElement('style');
+    style.textContent = `
+      .nip-success-icon { width: 72px; height: 72px; margin: 0 auto 1.2rem; display: block; animation: nip-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+      .nip-success-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2.5; stroke: #108a46; fill: none; animation: nip-stroke 0.5s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
+      .nip-success-check { stroke-dasharray: 48; stroke-dashoffset: 48; stroke-width: 3.5; stroke: #108a46; fill: none; transform-origin: 50% 50%; animation: nip-stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.4s forwards; }
+      @keyframes nip-stroke { 100% { stroke-dashoffset: 0; } }
+      @keyframes nip-pop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+      .nip-text-fade { animation: nip-pop 0.4s ease-out 0.3s both; }
+    `;
+    document.head.appendChild(style);
+    
+    const dlg = document.createElement('dialog');
+    dlg.id = 'dlg-nip';
+    dlg.className = 'ventana angosta';
+    
+    const htmlOriginalCuerpo = 
+      '<p class="muted" style="margin-bottom:1rem; text-align:center;">Ingrese su NIP de seguridad (4 dígitos) para habilitar la captura de su firma.</p>' +
+      '<div style="display:flex; justify-content:center; margin: 1.5rem 0;">' +
+        '<input type="password" id="nip-val" maxlength="4" required inputmode="numeric" placeholder="****" autocomplete="off" style="font-size: 2.2rem; letter-spacing: .4em; text-align: center; width: 160px; padding: .6rem; border-radius: 8px;">' +
+      '</div>';
+      
+    dlg.innerHTML = 
+      '<form method="dialog" id="f-nip">' +
+        '<div class="ventana-cab"><h2>Autorización de firma</h2><button class="cerrar-x" type="button" data-cerrar aria-label="Cerrar">×</button></div>' +
+        '<div class="ventana-cuerpo" id="nip-cuerpo" style="min-height: 180px; display: flex; flex-direction: column; justify-content: center;">' + htmlOriginalCuerpo + '</div>' +
+        '<div class="ventana-pie" id="nip-pie"><span></span><div class="der"><button class="btn" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="submit">Validar NIP</button></div></div>' +
+      '</form>';
+    document.body.appendChild(dlg);
+
+    let cajaBloqueada = null;
+    let btnActivador = null;
+
+    document.body.addEventListener('click', e => {
+      const btn = e.target.closest('.btn-nip');
+      if (btn) {
+         cajaBloqueada = document.getElementById(btn.dataset.caja);
+         btnActivador = btn;
+         const nipInp = $('#nip-val');
+         if (nipInp) nipInp.value = '';
+         $('#dlg-nip').showModal();
+         setTimeout(() => { if ($('#nip-val')) $('#nip-val').focus(); }, 100);
+      }
+      const cerrar = e.target.closest('#dlg-nip [data-cerrar]');
+      if (cerrar) $('#dlg-nip').close();
+    });
+
+    $('#f-nip').addEventListener('submit', e => {
+      e.preventDefault();
+      const nipInp = $('#nip-val');
+      const nip = nipInp.value.trim();
+      
+      if (nip.length === 4) { 
+         $('#nip-pie').style.display = 'none';
+         
+         $('#nip-cuerpo').innerHTML = 
+           '<div style="text-align:center; padding: 1rem 0;">' +
+             '<svg class="nip-success-icon" viewBox="0 0 52 52">' +
+               '<circle class="nip-success-circle" cx="26" cy="26" r="25"/>' +
+               '<path class="nip-success-check" d="M14.1 27.2l7.1 7.2 16.7-16.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+             '</svg>' +
+             '<h3 class="nip-text-fade" style="color: var(--marino); margin-bottom: .4rem; font-size: 1.4rem;">NIP Válido</h3>' +
+             '<p class="muted nip-text-fade" style="font-size: 1rem; margin: 0;">Autorización concedida.</p>' +
+           '</div>';
+           
+         // Espera a que termine la animación antes de cerrar y desbloquear la caja
+         setTimeout(() => {
+             if (cajaBloqueada) {
+                 cajaBloqueada.style.pointerEvents = 'auto';
+                 cajaBloqueada.style.opacity = '1';
+             }
+             if (btnActivador) btnActivador.hidden = true;
+             
+             $('#dlg-nip').close();
+             
+             // Restaurar el contenido HTML original del modal cuando ya esté cerrado
+             setTimeout(() => {
+                 $('#nip-cuerpo').innerHTML = htmlOriginalCuerpo;
+                 $('#nip-pie').style.display = 'flex';
+             }, 300);
+         }, 1800);
+         
+      } else {
+         toast('El NIP debe ser de 4 dígitos exactos.', 'error');
+         nipInp.value = '';
+         nipInp.focus();
+      }
+    });
+  }
+
+  prepararModalNip();
 
   window.Mtto = { $, $$, esc, toast, api, ahoraLocal, hoy, aInput, fechaCorta, minutos, duracion, Firma, renderFormato, ESTADOS, PRIORIDADES };
 })();
